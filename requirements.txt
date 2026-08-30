@@ -2,10 +2,14 @@
 # Versiones fijadas a las que se usaron para generar las salidas del notebook.
 # Instalación: ./setup.sh  (o pip install -r requirements.txt dentro de un venv)
 
-tensorflow==2.21.0
+# On Apple Silicon, use the native macOS build; the regular x86 build aborts
+# under Rosetta when the CPU lacks AVX instructions.
+tensorflow-macos==2.16.2; platform_system == "Darwin" and platform_machine == "arm64"
+tensorflow==2.16.2; platform_machine != "arm64"
 keras==3.15.1
 pandas==3.0.5
-numpy==2.4.6
+# TensorFlow 2.16.2 requires NumPy < 2.0.
+numpy==1.26.4
 scikit-learn==1.9.0
 matplotlib==3.11.1
 ipykernel==7.3.0

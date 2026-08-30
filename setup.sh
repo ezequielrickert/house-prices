@@ -22,7 +22,9 @@ KERNEL_LABEL="Python (clase3 .venv)"
 # Se necesita Python 3.10 o superior. El de macOS (/usr/bin/python3, 3.9) no sirve
 # para estas versiones de TensorFlow.
 find_python() {
-  for c in python3.13 python3.12 python3.11 python3.10 python3; do
+  # Prefer a native interpreter on Apple Silicon. A Rosetta x86 Python can
+  # install TensorFlow successfully but abort at import time on non-AVX CPUs.
+  for c in python3.11 python3.13 python3.12 python3.10 python3; do
     if command -v "$c" >/dev/null 2>&1; then
       if "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
         echo "$c"; return 0
@@ -39,7 +41,11 @@ if [ ! -d "$VENV" ]; then
     exit 1
   }
   echo "==> Creando el entorno virtual con $($PY --version)"
-  "$PY" -m venv "$VENV"
+  if command -v uv >/dev/null 2>&1; then
+    uv venv --python "$PY" "$VENV"
+  else
+    "$PY" -m venv "$VENV"
+  fi
 else
   echo "==> El entorno virtual ya existe ($("$VENV/bin/python" --version))"
 fi
@@ -48,8 +54,12 @@ PYBIN="$VENV/bin/python"
 
 # --- 2. dependencias --------------------------------------------------------
 echo "==> Instalando dependencias (puede tardar varios minutos la primera vez)"
-"$PYBIN" -m pip install --quiet --upgrade pip
-"$PYBIN" -m pip install --quiet -r requirements.txt
+if command -v uv >/dev/null 2>&1; then
+  uv pip install --python "$PYBIN" -r requirements.txt
+else
+  "$PYBIN" -m pip install --quiet --upgrade pip
+  "$PYBIN" -m pip install --quiet -r requirements.txt
+fi
 
 # --- 3. kernel de Jupyter con nombre propio ---------------------------------
 # Sin esto el kernel queda registrado como "python3" y choca con el Python del
